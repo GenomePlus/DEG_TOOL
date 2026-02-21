@@ -1,29 +1,18 @@
 import matplotlib.pyplot as plt
-import numpy as np
+import networkx as nx
 
-def volcano_plot(df, logfc_col, pval_col, regulation_col):
-    plt.figure(figsize=(8,6))
+def plot_ppi(G, centrality_dict, metric="Degree"):
+    pos = nx.spring_layout(G)
+    values = [centrality_dict[metric].get(n, 0) for n in G.nodes()]
 
-    df["neglog10"] = -np.log10(df[pval_col] + 1e-10)
+    plt.figure(figsize=(10,8))
+    nx.draw(G, pos,
+            node_color=values,
+            cmap="YlOrRd",
+            with_labels=True,
+            node_size=600)
 
-    colors = {
-        "Upregulated": "red",
-        "Downregulated": "blue",
-        "Not Significant": "grey"
-    }
-
-    for label, group in df.groupby(regulation_col):
-        plt.scatter(
-            group[logfc_col],
-            group["neglog10"],
-            c=colors[label],
-            label=label,
-            alpha=0.6
-        )
-
-    plt.xlabel("logFC")
-    plt.ylabel("-log10(p-value)")
-    plt.legend()
+    plt.title(f"PPI Network ({metric})")
     plt.tight_layout()
-
-    return plt
+    plt.savefig("ppi.png", dpi=300)
+    plt.close()
