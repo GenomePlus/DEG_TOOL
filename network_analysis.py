@@ -1,16 +1,20 @@
 import networkx as nx
-import numpy as np
 
-def build_network(edge_df):
-    G = nx.Graph()
-    for _, row in edge_df.iterrows():
-        G.add_edge(row["protein1"], row["protein2"], weight=row.get("score", 1))
-    return G
+class NetworkAnalysis:
 
+    def __init__(self, ppi_df):
+        self.G = nx.Graph()
+        for _, row in ppi_df.iterrows():
+            self.G.add_edge(
+                row["preferredName_A"],
+                row["preferredName_B"],
+                weight=row["score"]
+            )
 
-def compute_centrality(G):
-    degree = nx.degree_centrality(G)
-    betweenness = nx.betweenness_centrality(G)
-    closeness = nx.closeness_centrality(G)
-
-    return degree, betweenness, closeness
+    def compute_centrality(self):
+        return {
+            "Degree": nx.degree_centrality(self.G),
+            "Betweenness": nx.betweenness_centrality(self.G),
+            "Closeness": nx.closeness_centrality(self.G),
+            "Eigenvector": nx.eigenvector_centrality(self.G, max_iter=1000)
+        }
