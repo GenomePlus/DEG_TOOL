@@ -1,10 +1,5 @@
-import networkx as nx
+from database_connector import run_enrichr
 
-def build_tf_network(tf_df, deg_genes):
-    filtered = tf_df[tf_df["TargetGene"].isin(deg_genes)]
-    G = nx.Graph()
-
-    for _, row in filtered.iterrows():
-        G.add_edge(row["TF"], row["TargetGene"])
-
-    return G, filtered
+def analyze_tf(gene_list):
+    library = "ChEA_2016"
+    return run_enrichr(gene_list, library)
