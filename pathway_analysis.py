@@ -1,29 +1,16 @@
-import requests
-import pandas as pd
+from database_connector import run_enrichr
 
-ENRICHR_ADD = "https://maayanlab.cloud/Enrichr/addList"
-ENRICHR_ENRICH = "https://maayanlab.cloud/Enrichr/enrich"
+def analyze_pathways(gene_list):
 
-def run_enrichr(gene_list, library):
-    genes_str = "\n".join(gene_list)
-
-    response = requests.post(ENRICHR_ADD, files={"list": genes_str})
-    user_list_id = response.json()["userListId"]
-
-    response = requests.get(
-        ENRICHR_ENRICH,
-        params={
-            "userListId": user_list_id,
-            "backgroundType": library
-        }
-    )
-
-    data = response.json()[library]
-
-    columns = [
-        "Rank", "Term", "P-value",
-        "Z-score", "Combined Score",
-        "Genes", "Adjusted P-value"
+    libraries = [
+        "KEGG_2021_Human",
+        "Reactome_2022",
+        "GO_Biological_Process_2021"
     ]
 
-    return pd.DataFrame(data, columns=columns)
+    results = {}
+
+    for lib in libraries:
+        results[lib] = run_enrichr(gene_list, lib)
+
+    return results
