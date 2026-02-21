@@ -1,32 +1,27 @@
-import numpy as np
-import networkx as nx
+from database_connector import fetch_string_ppi
+from network_analysis import NetworkAnalysis
+from mirna_analysis import analyze_mirna
+from tf_analysis import analyze_tf
+from pathway_analysis import analyze_pathways
 
-def network_entropy(G):
-    degrees = np.array([d for _, d in G.degree()])
-    if degrees.sum() == 0:
-        return 0
+def run_systems_pipeline(gene_list):
 
-    p = degrees / degrees.sum()
-    return -np.sum(p * np.log2(p + 1e-10))
+    # PPI
+    ppi_df = fetch_string_ppi(gene_list)
+    network = NetworkAnalysis(ppi_df)
+    centrality = network.compute_centrality()
 
+    # Regulatory
+    mirna_results = analyze_mirna(gene_list)
+    tf_results = analyze_tf(gene_list)
 
-def network_density(G):
-    return nx.density(G)
+    # Pathways
+    pathway_results = analyze_pathways(gene_list)
 
-
-def network_centralization(G):
-    degrees = np.array([d for _, d in G.degree()])
-    max_deg = degrees.max()
-    n = len(degrees)
-
-    if n <= 2:
-        return 0
-
-    return np.sum(max_deg - degrees) / ((n - 1) * (n - 2))
-
-
-def network_heterogeneity(G):
-    degrees = np.array([d for _, d in G.degree()])
-    if degrees.mean() == 0:
-        return 0
-    return np.std(degrees) / degrees.mean()
+    return {
+        "ppi_graph": network.G,
+        "centrality": centrality,
+        "mirna": mirna_results,
+        "tf": tf_results,
+        "pathways": pathway_results
+    }
