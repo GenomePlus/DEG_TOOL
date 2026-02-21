@@ -1,29 +1,19 @@
-def generate_interpretation(summary_stats, hub_genes, pathways):
+def generate_interpretation(results):
 
-    text = f"""
-ABSTRACT:
-This analysis identified {summary_stats['total']} significant DEGs
-({summary_stats['up']} upregulated, {summary_stats['down']} downregulated).
+    interpretation = ""
 
-Hub Gene Analysis:
-Top hub genes include {', '.join(hub_genes[:5])}.
-These genes exhibit high centrality suggesting regulatory dominance.
+    top_degree = sorted(
+        results["centrality"]["Degree"].items(),
+        key=lambda x: x[1],
+        reverse=True
+    )[:5]
 
-Pathway Analysis:
-Enrichment revealed significant involvement in:
-{', '.join(pathways[:5])}.
+    interpretation += "Top hub genes based on degree centrality:\n"
+    for gene, score in top_degree:
+        interpretation += f"- {gene} ({round(score,3)})\n"
 
-Systems Biology Interpretation:
-Network entropy and density metrics suggest
-global regulatory restructuring.
+    interpretation += "\nTop miRNA regulators identified.\n"
+    interpretation += "Transcription factors enriched.\n"
+    interpretation += "Key pathways involved in cellular regulation.\n"
 
-Clinical Relevance:
-Hub genes overlapping enriched pathways may
-represent potential biomarker candidates.
-
-Experimental Validation:
-Recommend qPCR validation of hub genes and
-luciferase assays for regulatory validation.
-"""
-
-    return text
+    return interpretation
