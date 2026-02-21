@@ -1,44 +1,53 @@
 import requests
 import pandas as pd
-import gzip
-import os
+from io import StringIO
 
-STRING_API = "https://string-db.org/api"
+SPECIES_ID = 9606
 
-def fetch_string_interactions(genes, species=9606, score=0.7):
-    if not genes:
-        return pd.DataFrame()
+
+# ------------------ STRING PPI ------------------ #
+
+def fetch_string_ppi(genes, score_threshold=700):
+    genes_str = "%0d".join(genes)
+    url = "https://string-db.org/api/tsv/network"
 
     params = {
-        "identifiers": "%0d".join(genes),
-        "species": species,
-        "required_score": int(score * 1000),
-        "format": "tsv-no-header"
+        "identifiers": genes_str,
+        "species": SPECIES_ID,
+        "required_score": score_threshold,
+        "caller_identity": "systems_biology_tool"
     }
 
-    response = requests.post(
-        f"{STRING_API}/network",
-        data=params
-    )
+    response = requests.post(url, data=params)
 
     if response.status_code != 200:
-        raise Exception("STRING API failed")
+        return pd.DataFrame()
 
-    rows = []
-    for line in response.text.strip().split("\n"):
-        parts = line.split("\t")
-        rows.append({
-            "protein1": parts[2],
-            "protein2": parts[3],
-            "score": float(parts[5])
-        })
-
-    return pd.DataFrame(rows)
+    return pd.read_csv(StringIO(response.text), sep="\t")
 
 
-def load_mirtarbase(path="data/mirna_targets_human_validated_minimal.tsv.gz"):
-    return pd.read_csv(path, sep="\t", compression="gzip")
+# ------------------ ENRICHR ------------------ #
 
+def run_enrichr(gene_list, library):
+    add_url = "https://maayanlab.cloud/Enrichr/addList"
+    enrich_url = "https://maayanlab.cloud/Enrichr/enrich"
 
-def load_jaspar(path="data/jaspar_tf_targets_human_minimal.tsv.gz"):
-    return pd.read_csv(path, sep="\t", compression="gzip")
+    genes_str = "\n".join(gene_list)
+
+    payload = {"list": (None, genes_str)}
+    response = requests.post(add_url, files=payload)
+
+    if not response.ok:
+        return pd.DataFrame()
+
+    user_list_id = response.json()["userListId"]
+
+    result = requests.get(enrich_url,
+                          params={"userListId": user_list_id,
+                                  "backgroundType": library})
+
+    if not result.ok:
+        return pd.DataFrame()
+
+    data = result.json()[library]
+    return pd.DataFrame(data)
